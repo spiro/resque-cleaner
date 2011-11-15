@@ -128,8 +128,12 @@ module Resque
                 redis.lset(:failed, @limiter.start_index+i, Resque.encode(job))
               end
 
-              Job.create(queue||job['queue'], job['payload']['class'], *job['payload']['args'])
-              requeued += 1
+              klass = job['payload']['class']
+              args = job['payload']['args']
+              Plugin.run_enqueue_hooks(klass, *args) do
+                Job.create(queue||job['queue'], klass, *args)
+                requeued += 1
+              end
             end
           end
         end
